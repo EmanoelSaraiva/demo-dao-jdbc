@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +26,74 @@ public class SellerDaoJDBC implements SellerDao {
 
 	@Override
 	public void insert(Seller obj) {
+		
+		PreparedStatement st = null;
+		try {
+			st = conn.prepareStatement(
+					"INSERT INTO seller_ww "
+					+"(Name, Email, BirthDate, BaseSalary, Department_Id) "
+					+"VALUES "
+					+"(?, ?, ?, ?, ?)");
+			st.setString(1, obj.getName());
+			st.setString(2, obj.getEmail());
+			st.setDate(3, new java.sql.Date(obj.getBirthDate().getTime()));
+			st.setDouble(4, obj.getBaseSalary());
+			st.setInt(5, obj.getDepartmment().getId());
+			
+			int rowsAffected = st.executeUpdate();
+			
+			if (rowsAffected > 0) {
+				//Banco Oracle não retorna o ultimo id vou fazer manualmente
+				PreparedStatement st1 = null;
+				ResultSet rs = null;
+				
+				st1 = conn.prepareStatement("SELECT MAX(id) as id FROM Seller_ww");
+				rs = st1.executeQuery();
+				
+				if (rs.next()) {
+					int id = rs.getInt("id");
+					System.out.println("Key Generated: " + id);
+					obj.setId(id);
+				}
+				DB.closeStatement(st1);
+				DB.closeResultSet(rs);
+				
+			}else {
+				DecrementSequenceSeller();
+				throw new DbException("Unexpected error! No rows affected!");
+			}
+			
+		}catch(SQLException e) {
+			DecrementSequenceSeller();
+			throw new DbException(e.getMessage());
+		}finally {
+			DB.closeStatement(st);
+		}
+		
+	}
 
+	private void DecrementSequenceSeller() {
+		
+		PreparedStatement st = null;
+		
+		try {
+			st = conn.prepareStatement(
+					"ALTER SEQUENCE SEQ_id_Seller_ww " 
+					+"INCREMENT BY -1 "
+
+					+"SELECT SEQ_id_Seller_ww.nextval " 
+					+"FROM dual "
+					  
+					+"ALTER SEQUENCE SEQ_id_Seller_ww " 
+					+"INCREMENT BY 1");		
+		}catch(SQLException e) {
+			throw new DbException("Error in decrement Sequence!");
+		}
+		
+		finally{
+			DB.closeStatement(st);
+		}
+		
 	}
 
 	@Override
@@ -66,7 +134,7 @@ public class SellerDaoJDBC implements SellerDao {
 			throw new DbException(e.getMessage());
 		} finally {
 			DB.closeStatement(st);
-			DB.closeResult(rs);
+			DB.closeResultSet(rs);
 		}
 
 	}
@@ -125,7 +193,7 @@ public class SellerDaoJDBC implements SellerDao {
 		} 
 		finally {
 			DB.closeStatement(st);
-			DB.closeResult(rs);
+			DB.closeResultSet(rs);
 		}
 	}
 
@@ -167,7 +235,7 @@ public class SellerDaoJDBC implements SellerDao {
 		} 
 		finally {
 			DB.closeStatement(st);
-			DB.closeResult(rs);
+			DB.closeResultSet(rs);
 		}
 	}
 
