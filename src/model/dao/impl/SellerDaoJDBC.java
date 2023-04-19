@@ -13,13 +13,13 @@ import model.entities.Department;
 import model.entities.Seller;
 
 public class SellerDaoJDBC implements SellerDao {
-	
+
 	private Connection conn;
-	
+
 	public SellerDaoJDBC(Connection conn) {
 		this.conn = conn;
 	}
-	
+
 	@Override
 	public void insert(Seller obj) {
 
@@ -40,45 +40,50 @@ public class SellerDaoJDBC implements SellerDao {
 
 		PreparedStatement st = null;
 		ResultSet rs = null;
-				
+
 		try {
-			st = conn.prepareStatement(
-				  "SELECT "  
-				+    "seller.*, "
-				+    "department.Name as DepName "
-				+ "FROM seller_ww seller, department_ww department "
-				+ "WHERE seller.department_id = department.id "
-				+ "    and seller.id = ? "
-					
-					);
-			
+			st = conn.prepareStatement("SELECT " + "seller.*, " + "department.Name as DepName "
+					+ "FROM seller_ww seller, department_ww department " + "WHERE seller.department_id = department.id "
+					+ "    and seller.id = ? "
+
+			);
+
 			st.setInt(1, id);
 			rs = st.executeQuery();
-			
-			if(rs.next()) {
-				
-				Department dep = new Department();
-				dep.setId(rs.getInt("department_id"));
-				dep.setName(rs.getString("DepName"));
-				
-				Seller obj = new Seller();
-				obj.setId(rs.getInt("id"));
-				obj.setName(rs.getString("name"));
-				obj.setEmail(rs.getString("email"));
-				obj.setBirthDate(rs.getDate("birthDate"));
-				obj.setBaseSalary(rs.getDouble("baseSalary"));
-				obj.setDepartmment(dep);
-				
+
+			if (rs.next()) {
+
+				Department dep = instantiateDepartment(rs);
+				Seller obj = instantiateSeller(rs, dep);
+
 				return obj;
 			}
 			return null;
-		}catch(SQLException e) {
+		} catch (SQLException e) {
 			throw new DbException(e.getMessage());
-		}finally {
+		} finally {
 			DB.closeStatement(st);
 			DB.closeResult(rs);
 		}
-		
+
+	}
+
+	private Seller instantiateSeller(ResultSet rs, Department dep) throws SQLException {
+		Seller obj = new Seller();
+		obj.setId(rs.getInt("id"));
+		obj.setName(rs.getString("name"));
+		obj.setEmail(rs.getString("email"));
+		obj.setBirthDate(rs.getDate("birthDate"));
+		obj.setBaseSalary(rs.getDouble("baseSalary"));
+		obj.setDepartmment(dep);
+		return obj;
+	}
+
+	private Department instantiateDepartment(ResultSet rs) throws SQLException {
+		Department dep = new Department();
+		dep.setId(rs.getInt("department_id"));
+		dep.setName(rs.getString("DepName"));
+		return dep;
 	}
 
 	@Override
